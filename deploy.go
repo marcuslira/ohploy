@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -17,8 +21,12 @@ func deployContainer(image string) error {
 		return err
 	}
 
-	ids, err := listContainersByImage(cli, image)
+	err = pullImage(cli, image)
+	if err != nil {
+		return err
+	}
 
+	ids, err := listContainersByImage(cli, image)
 	if err != nil {
 		return err
 	}
@@ -66,6 +74,29 @@ func listContainersByImage(cli *client.Client, image string) ([]string, error) {
 
 }
 
+func pullImage(cli *client.Client, image string) error {
+	fmt.Println("ohploy: pulling new image...")
+
+	authConfig := types.AuthConfig{
+		Username: "",
+		Password: "",
+	}
+	encodedJSON, err := json.Marshal(authConfig)
+	if err != nil {
+		panic(err)
+	}
+	authStr := base64.URLEncoding.EncodeToString(encodedJSON)
+
+	out, err := cli.ImagePull(context.Background(), image, types.ImagePullOptions{
+		RegistryAuth: authStr,
+	})
+	if err != nil {
+		return err
+	}
+	io.Copy(os.Stdout, out)
+	return nil
+}
+
 func startContainer(cli *client.Client, image string) (string, error) {
 	fmt.Println("ohploy: starting container...")
 
@@ -105,10 +136,11 @@ func startContainer(cli *client.Client, image string) (string, error) {
 
 func main() {
 	fmt.Println("ohploy: deploying container...")
+	imageName := "docker.io/marcuslira/aspiratracker:latest"
 
-	err := deployContainer("marcuslira/aspiratracker:latest")
+	err := deployContainer(imageName)
 	if err != nil {
-		fmt.Printf("ohplot: Error - Deploying container: %v\n", err)
+		fmt.Printf("ohploy: Error - Deploying container: %v\n", err)
 	}
 
 	fmt.Println("ohploy: Done.")
