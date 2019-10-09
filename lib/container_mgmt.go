@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"context"
@@ -15,7 +15,8 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
-func deployContainer(image string) error {
+// DeployContainer pulls and deploys the image
+func DeployContainer(image string) error {
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return err
@@ -132,16 +133,4 @@ func startContainer(cli *client.Client, image string) (string, error) {
 	}
 
 	return cont.ID, nil
-}
-
-func main() {
-	fmt.Println("ohploy: deploying container...")
-	imageName := "docker.io/marcuslira/aspiratracker:latest"
-
-	err := deployContainer(imageName)
-	if err != nil {
-		fmt.Printf("ohploy: Error - Deploying container: %v\n", err)
-	}
-
-	fmt.Println("ohploy: Done.")
 }
