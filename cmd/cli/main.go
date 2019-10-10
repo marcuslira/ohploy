@@ -7,10 +7,11 @@ import (
 )
 
 func main() {
-	fmt.Println("ohploy: deploying container...")
-	imageName := "docker.io/marcuslira/aspiratracker:latest"
+	config, _ := lib.NewEnvConfig()
+	mgmt, _ := lib.NewContainerMgmt(config)
 
-	err := lib.DeployContainer(imageName)
+	fmt.Println("ohploy: deploying container...")
+	err := mgmt.DeployContainer()
 	if err != nil {
 		fmt.Printf("ohploy: Error - Deploying container: %v\n", err)
 	}

@@ -15,32 +15,47 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
-// DeployContainer pulls and deploys the image
-func DeployContainer(image string) error {
+// ContainerMgmt defines a manament object
+type ContainerMgmt struct {
+	config Config
+	cli    *client.Client
+}
+
+// NewContainerMgmt creates a new ContainerMgmt instance
+func NewContainerMgmt(config Config) (*ContainerMgmt, error) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	mgmt := new(ContainerMgmt)
+	mgmt.config = config
+	mgmt.cli = cli
 
-	err = pullImage(cli, image)
+	return mgmt, nil
+}
+
+// DeployContainer pulls and deploys the image
+func (c *ContainerMgmt) DeployContainer() error {
+
+	err := c.pullImage(c.cli, c.config.ImageName)
 	if err != nil {
 		return err
 	}
 
-	ids, err := listContainersByImage(cli, image)
+	ids, err := c.listContainersByImage(c.cli, c.config.ImageName)
 	if err != nil {
 		return err
 	}
 
 	if len(ids) > 0 {
-		err = stopContainer(cli, ids[0])
+		err = c.stopContainer(c.cli, ids[0])
 
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = startContainer(cli, image)
+	_, err = c.startContainer(c.cli, c.config.ImageName)
 	if err != nil {
 		return err
 	}
@@ -48,7 +63,7 @@ func DeployContainer(image string) error {
 	return nil
 }
 
-func stopContainer(cli *client.Client, contID string) error {
+func (c *ContainerMgmt) stopContainer(cli *client.Client, contID string) error {
 	fmt.Println("ohploy: stopping container...")
 	err := cli.ContainerStop(context.Background(), contID, nil)
 	if err != nil {
@@ -57,7 +72,7 @@ func stopContainer(cli *client.Client, contID string) error {
 
 	return err
 }
-func listContainersByImage(cli *client.Client, image string) ([]string, error) {
+func (c *ContainerMgmt) listContainersByImage(cli *client.Client, image string) ([]string, error) {
 	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
 		return nil, err
@@ -75,12 +90,12 @@ func listContainersByImage(cli *client.Client, image string) ([]string, error) {
 
 }
 
-func pullImage(cli *client.Client, image string) error {
+func (c *ContainerMgmt) pullImage(cli *client.Client, image string) error {
 	fmt.Println("ohploy: pulling new image...")
 
 	authConfig := types.AuthConfig{
-		Username: "",
-		Password: "",
+		Username: c.config.RegistryUser,
+		Password: c.config.RegistryPass,
 	}
 	encodedJSON, err := json.Marshal(authConfig)
 	if err != nil {
@@ -98,15 +113,15 @@ func pullImage(cli *client.Client, image string) error {
 	return nil
 }
 
-func startContainer(cli *client.Client, image string) (string, error) {
+func (c *ContainerMgmt) startContainer(cli *client.Client, image string) (string, error) {
 	fmt.Println("ohploy: starting container...")
 
 	hostBinding := nat.PortBinding{
 		HostIP:   "0.0.0.0",
-		HostPort: "5000",
+		HostPort: c.config.HostPort,
 	}
 
-	containerPort, err := nat.NewPort("tcp", "5000")
+	containerPort, err := nat.NewPort("tcp", c.config.ContainerPort)
 
 	if err != nil {
 		return "", err
