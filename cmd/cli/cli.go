@@ -2,16 +2,23 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/marcuslira/ohploy/lib"
 )
 
 func Cli() {
-	config, _ := lib.NewEnvConfig()
+	config, err := lib.LoadConfigFile()
+	if err != nil {
+		fmt.Printf("ohploy: Error - loading a config file: %v\n", err)
+		os.Exit(1)
+	}
+
 	mgmt, _ := lib.NewContainerMgmt(config)
 
-	fmt.Println("ohploy: deploying container...")
-	err := mgmt.DeployContainer()
+	fmt.Printf("ohploy: deploying container from: %s...\n", config.Container.ImageName)
+
+	err = mgmt.DeployContainer()
 	if err != nil {
 		fmt.Printf("ohploy: Error - Deploying container: %v\n", err)
 	}

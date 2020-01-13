@@ -37,12 +37,12 @@ func NewContainerMgmt(config Config) (*ContainerMgmt, error) {
 // DeployContainer pulls and deploys the image
 func (c *ContainerMgmt) DeployContainer() error {
 
-	err := c.pullImage(c.cli, c.config.ImageName)
+	err := c.pullImage(c.cli, c.config.Container.ImageName)
 	if err != nil {
 		return err
 	}
 
-	ids, err := c.listContainersByImage(c.cli, c.config.ImageName)
+	ids, err := c.listContainersByImage(c.cli, c.config.Container.ImageName)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (c *ContainerMgmt) DeployContainer() error {
 		}
 	}
 
-	_, err = c.startContainer(c.cli, c.config.ImageName)
+	_, err = c.startContainer(c.cli, c.config.Container.ImageName)
 	if err != nil {
 		return err
 	}
@@ -94,8 +94,8 @@ func (c *ContainerMgmt) pullImage(cli *client.Client, image string) error {
 	fmt.Println("ohploy: pulling new image...")
 
 	authConfig := types.AuthConfig{
-		Username: c.config.RegistryUser,
-		Password: c.config.RegistryPass,
+		Username: c.config.DeployServer.RegistryUser,
+		Password: c.config.DeployServer.RegistryPass,
 	}
 	encodedJSON, err := json.Marshal(authConfig)
 	if err != nil {
@@ -118,10 +118,10 @@ func (c *ContainerMgmt) startContainer(cli *client.Client, image string) (string
 
 	hostBinding := nat.PortBinding{
 		HostIP:   "0.0.0.0",
-		HostPort: c.config.HostPort,
+		HostPort: c.config.DeployServer.HostPort,
 	}
 
-	containerPort, err := nat.NewPort("tcp", c.config.ContainerPort)
+	containerPort, err := nat.NewPort("tcp", c.config.Container.ContainerPort)
 
 	if err != nil {
 		return "", err
@@ -132,9 +132,11 @@ func (c *ContainerMgmt) startContainer(cli *client.Client, image string) (string
 		context.Background(),
 		&container.Config{
 			Image: image,
+			Env:   c.config.Container.ContainerEnv,
 		},
 		&container.HostConfig{
-			PortBindings: portBinding,
+			PortBindings:  portBinding,
+			RestartPolicy: container.RestartPolicy{Name: c.config.Container.RestartPolicy},
 		}, nil, "")
 
 	if err != nil {

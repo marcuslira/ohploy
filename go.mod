@@ -11,4 +11,5 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/net v0.0.0-20190930134127-c5a3c61f89f3 // indirect
+	gopkg.in/yaml.v2 v2.2.7
 )
