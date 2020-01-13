@@ -16,3 +16,5 @@
 
 # env files
 .envrc
+pub.sh
+config.yml
